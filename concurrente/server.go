@@ -12,13 +12,10 @@ package main
 import (
 	"fmt"
 	"net"
-	"os"
 	"com"
-    "bytes"
-    "compress/gzip"
     "encoding/gob"
-    "io/ioutil"
-    "log"
+    "os"
+
 )
 
 func checkError(err error) {
@@ -50,54 +47,6 @@ func FindPrimes(interval com.TPInterval) (primes []int) {
 	return primes
 }
 
-//Pre []byte array
-//post return a Request
-func Decode(data []byte) com.Request {
-
-	r := com.Request{}
-	dec := gob.NewDecoder(bytes.NewReader(data))
-	err := dec.Decode(&r)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return r
-}
-//function for descompress the data
-func Decompress(s []byte) []byte {
-
-	rdr, _ := gzip.NewReader(bytes.NewReader(s))
-	data, err := ioutil.ReadAll(rdr)
-	if err != nil {
-		log.Fatal(err)
-	}
-	rdr.Close()
-	//descomprime un array de bytes
-	return data
-}
-
-//funcion para  serializar
-func EncodeToBytes(p interface{}) []byte {
-
-    buf := bytes.Buffer{}
-    enc := gob.NewEncoder(&buf)
-    err := enc.Encode(p)
-    if err != nil {
-        log.Fatal(err)
-    }
-	//Retorno un array de bytes de un struct
-    return buf.Bytes()
-}
-
-//Funcion para comprimir
-func Compress(s []byte) []byte {
-
-    zipbuf := bytes.Buffer{}
-    zipped := gzip.NewWriter(&zipbuf)
-    zipped.Write(s)
-    zipped.Close()
-	//Comprimo un array de bites
-    return zipbuf.Bytes()
-}
 
 func main() {
 	CONN_TYPE := "tcp"
@@ -121,33 +70,21 @@ func handleClient(conn net.Conn) {
 	//cierro el canal al acabar la funcion. Esto permite el cierre del cliente
 	defer conn.Close()
 
-	//creo un buffer de 1024. Por protocolo TCP. Llega menos datos por que es un struct formado por 3 ints
-  	data := make([]byte, 1024)
-  	//leo el struct
-  	n, err := conn.Read(data)
+	encoder := gob.NewEncoder(conn)
+    decoder := gob.NewDecoder(conn)
 
-  	fmt.Println(data[0:n])
 
-  	//Descomprimo los datos recibidos de 0 -> N(numero de bytes recibidos)
-	dataIn := Decompress(data[0:n])
-	//lo decodifico para obtener la respuesta
-	request := Decode(dataIn)
+    var request com.Request
+    err := decoder.Decode(&request)
+    checkError(err)
+    fmt.Println(request)
 
-	//Saco los primos del intervalo
-	listaPrimos := FindPrimes(request.Interval)
+    listaPrimos := FindPrimes(request.Interval)
 
 	//quitar el id hardcode												//Todo: Poner el id o incremental o aleatorio -> Mas facil a mi parecer aleatorio
-	reply := com.Reply{Id: 0, Primes: listaPrimos}
+	reply := com.Reply{Id: request.Id, Primes: listaPrimos}
 
-	//Serializo la respuesta
-	dataOut := EncodeToBytes(reply)
-    //Lo comprimo para enviar menos bytes
-    dataOut = Compress(dataOut)
-    //envio la lista de primos.
-    conn.Write(dataOut)
-
-	fmt.Println(listaPrimos, err)
-
-
+	err = encoder.Encode(reply)
+    checkError(err)
 }
 
