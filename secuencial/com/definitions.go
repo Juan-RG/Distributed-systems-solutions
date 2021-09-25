@@ -9,7 +9,6 @@
 */
 package com
 
-//import "time"
 
 type TPInterval struct {
     A int
