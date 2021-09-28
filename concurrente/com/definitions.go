@@ -5,10 +5,11 @@
 * FECHA: septiembre de 2021
 * FICHERO: definitions.go
 * DESCRIPCIÓN: contiene las definiciones de estructuras de datos necesarias para
-*			el Trabajo 1
+*			la práctica 1
 */
 package com
 
+import "time"
 
 type TPInterval struct {
     A int
@@ -20,7 +21,17 @@ type Request struct {
     Interval TPInterval
 }
 
+type TimeRequest struct {
+    Id int
+    T time.Time
+}
+
 type Reply struct {
     Id int
     Primes []int
+}
+
+type TimeReply struct {
+    Id int
+    T time.Time
 }

@@ -59,6 +59,7 @@ func main() {
 	for{
 		conn, err := listener.Accept()
 		//defer conn.Close()
+		fmt.Println("0 ", err)
 		checkError(err)
 		
 		go handleClient(conn)
@@ -73,18 +74,24 @@ func handleClient(conn net.Conn) {
 	encoder := gob.NewEncoder(conn)
     decoder := gob.NewDecoder(conn)
 
+    recivoPeticiones := true
+    for recivoPeticiones {
+	    var request com.Request
+	    err := decoder.Decode(&request)
+	    if err != nil {
+			recivoPeticiones = false
+		}
+	    checkError(err)
 
-    var request com.Request
-    err := decoder.Decode(&request)
-    checkError(err)
-    fmt.Println(request)
+	    listaPrimos := FindPrimes(request.Interval)
 
-    listaPrimos := FindPrimes(request.Interval)
+		//quitar el id hardcode												//Todo: Poner el id o incremental o aleatorio -> Mas facil a mi parecer aleatorio
+		reply := com.Reply{Id: request.Id, Primes: listaPrimos}
 
-	//quitar el id hardcode												//Todo: Poner el id o incremental o aleatorio -> Mas facil a mi parecer aleatorio
-	reply := com.Reply{Id: request.Id, Primes: listaPrimos}
-
-	err = encoder.Encode(reply)
-    checkError(err)
+		err = encoder.Encode(reply)
+		if err != nil {
+			recivoPeticiones = false
+		}
+    }
 }
 
