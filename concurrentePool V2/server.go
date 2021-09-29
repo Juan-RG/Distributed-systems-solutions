@@ -47,14 +47,20 @@ func FindPrimes(interval com.TPInterval) (primes []int) {
 	return primes
 }
 
-func poolGoRutines(chRequest chan com.Request, chReply chan com.Reply){
+func poolGoRutines(chJobs chan com.Job){
 	for {
-		dato := <- chRequest
-		fmt.Println("PoolGoRutines recibo: " , dato)
-		primos := FindPrimes(dato.Interval)
-		reply := com.Reply{Id: dato.Id, Primes: primos}
+
+		job := <- chJobs
+		encoder := gob.NewEncoder(job.Conn)
+		fmt.Println("PoolGoRutines recibo: " , job)
+		primos := FindPrimes(job.Request.Interval)
+		reply := com.Reply{Id: job.Request.Id, Primes: primos}
 		fmt.Println("PoolGoRutines envio: " , reply)
-		chReply <- reply
+		err := encoder.Encode(reply)
+		if err != nil {
+			job.Conn.Close()
+		}
+		//chReply <- reply
 	}
 
 }
@@ -75,13 +81,12 @@ func main() {
 		CONN_PORT = "30000"
 	}
 
-	chRequest := make(chan com.Request, 10)
-	chReply := make(chan com.Reply, 10)
+	chJobs := make(chan com.Job, 10)
 
-	go poolGoRutines(chRequest, chReply)
-	go poolGoRutines(chRequest, chReply)
-	go poolGoRutines(chRequest, chReply)
-	go poolGoRutines(chRequest, chReply)
+	go poolGoRutines(chJobs)
+	go poolGoRutines(chJobs)
+	go poolGoRutines(chJobs)
+	go poolGoRutines(chJobs)
 
 
 	listener, err := net.Listen(CONN_TYPE, CONN_HOST + ":" + CONN_PORT)
@@ -94,17 +99,17 @@ func main() {
 		//defer conn.Close()
 		checkError(err)
 		
-		go handleClient(conn, chRequest, chReply)
+		go handleClient(conn, chJobs)
 
 	}
 
 }
 
-func handleClient(conn net.Conn, chRequest chan com.Request, chReply chan com.Reply) {
+func handleClient(conn net.Conn, chJobs chan com.Job) {
 	//cierro el canal al acabar la funcion. Esto permite el cierre del cliente
-	defer conn.Close()
+	//defer conn.Close()
 
-	encoder := gob.NewEncoder(conn)
+	
     decoder := gob.NewDecoder(conn)
 
     reciboPeticiones := true
@@ -113,31 +118,14 @@ func handleClient(conn net.Conn, chRequest chan com.Request, chReply chan com.Re
 	    err := decoder.Decode(&request)
 	    if err != nil {
 			reciboPeticiones = false
-			//break
+			conn.Close()
+			 fmt.Println("Okey ")
+			break
 		}
 	    //checkError(err)
-
 	    fmt.Println("handleClient recibo: " , request)
-	    chRequest <- request
-
-	    reply := com.Reply{-1, nil}
-	    for reply.Id != request.Id {
-	    	reply = <- chReply
-	    	if reply.Id != request.Id {
-	    		chReply <- reply
-	    	}
-	    }
-	    fmt.Println("handleClient recibo: " , reply)
-	    fmt.Println("Consecuencia " , reply.Id, " --- ", request.Id)
-	    //listaPrimos := FindPrimes(request.Interval)
-
-		//quitar el id hardcode												//Todo: Poner el id o incremental o aleatorio -> Mas facil a mi parecer aleatorio
-		//reply := com.Reply{Id: request.Id, Primes: listaPrimos}
-
-		err = encoder.Encode(reply)
-		if err != nil {
-			reciboPeticiones = false
-		}
+	    job := com.Job{conn, request}
+	    chJobs <- job
     }
 }
 
