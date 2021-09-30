@@ -1,1 +1,12 @@
-tENER EL SERVIDOR CON CANAL ASINCRONO CONECTADO A PROCESOS PROXY
+Para aclararnos un poco:
+- El cliente se conectaran via localhost
+- El master estara en la maquina 155.210.154.194
+- Los workers estaran: 	155.210.154.195 -- 30000
+			hasta
+			155.210.154.198 -- 30003
+
+QUEDA POR HACER:
+- IMPORTANTE!!!! : Habra que enviar clave publica a dichas maquinas y asegurarnos de que siempre usemos las mismas
+- //CUIDAO CON ESTO, porque si cierro conexion entonces igual el worker se va a tomar por culo
+	sesion.Close()
+	conn.Close()
