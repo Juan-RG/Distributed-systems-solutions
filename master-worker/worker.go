@@ -40,11 +40,21 @@ func FindPrimes(interval com.TPInterval) (primes []int) {
 
 
 func main() {
+	CONN_TYPE := "tcp"
 
 	//Necesitamos que pase por parametro el puerto y la ip a la que tenemos que escuchar
-	CONN_TYPE := "tcp"
-	CONN_HOST := "155.210.154.196"
-	CONN_PORT := "30000"
+	var CONN_PORT, CONN_HOST string
+	if len(os.Args) > 1 && os.Args[1] != "" {
+		CONN_HOST = os.Args[1]
+	} else {
+		CONN_HOST = "127.0.0.1"
+	}
+	
+	if len(os.Args) > 2 && os.Args[2] != "" {
+		CONN_PORT = os.Args[2]
+	} else {
+		CONN_PORT = "30000"
+	}
 
 	listener, err := net.Listen(CONN_TYPE, CONN_HOST + ":" + CONN_PORT)
 	checkError(err)

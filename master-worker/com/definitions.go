@@ -41,3 +41,8 @@ type TimeReply struct {
     Id int
     T time.Time
 }
+
+type ruta_worker struct {
+    ip string
+    puerto string
+}
