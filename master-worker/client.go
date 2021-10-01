@@ -95,18 +95,19 @@ func receiveReply(decoder *gob.Decoder, delChan chan com.TimeReply){
 
 func main(){
     endpoint := "127.0.0.1:30000"
-    //numIt := 10
+    numIt := 10
     requestTmp := 6
-    //interval := com.TPInterval{1000, 70000}
-    interval := com.TPInterval{1, 7}
-   // tts := 3000 // time to sleep between consecutive requests
+    interval := com.TPInterval{1000, 70000}
+    interval = com.TPInterval{1, 7}
+    tts := 3000 // time to sleep between consecutive requests
 
-    //for i := 0; i < numIt; i++ {
-       // for t := 1; t <= requestTmp; t++{
-           // sendRequest(i * requestTmp + t, interval, endpoint)
-		   sendRequest(requestTmp, interval, endpoint)
-       // }
-       // time.Sleep(time.Duration(tts) * time.Millisecond)
-    //}
-	for{}
+    for i := 0; i < numIt; i++ {
+        for t := 1; t <= requestTmp; t++{
+            sendRequest(i * requestTmp + t, interval, endpoint)
+		   
+        }
+        time.Sleep(time.Duration(tts) * time.Millisecond)
+    }
+
+
 }

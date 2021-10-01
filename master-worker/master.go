@@ -15,10 +15,10 @@ import (
 	"com"
     "encoding/gob"
     "os"
-	"strings"
-	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/knownhosts"
+	"utils"
 )
+
+
 
 func checkError(err error) {
 	if err != nil {
@@ -39,11 +39,9 @@ func conectarAWorker(intervalo com.TPInterval, ip string) []int {
 	defer worker.Close() //Igual hay que cerrar al final de la funcion y no al final del prog
 	
 	//Enviamos el intervalo para que lo procese el worker
+	fmt.Println("Envio al worker ", ip)
 	err = gob.NewEncoder(worker).Encode(intervalo)
-	
-	if err != nil {
-		fmt.Println(err)
-	}
+	checkError(err)
 		
 	//Ahora habra que escuchar la ip y puerto para recibir los primos
 	var primos []int
@@ -54,10 +52,13 @@ func conectarAWorker(intervalo com.TPInterval, ip string) []int {
 }
 
 func poolGoRutines(chJobs chan com.Job, ip string, puerto string){
+	ruta := ip + ":" + puerto
 	for {
-		ruta := ip + ":" + puerto
-		job := <- chJobs
 
+		job := <- chJobs
+		fmt.Println("He leido del canal: ", job)
+		
+		fmt.Println("Voy a enviar a ", ruta)
 		//Conectamos con worker para enviarle los datos
 		primos := conectarAWorker(job.Request.Interval, ruta)
 
@@ -66,89 +67,59 @@ func poolGoRutines(chJobs chan com.Job, ip string, puerto string){
 		
 		encoder := gob.NewEncoder(job.Conn)
 		err := encoder.Encode(reply)
-		if err != nil {
+		defer job.Conn.Close()
+		fmt.Println(err)
+/*		if err != nil {
 			job.Conn.Close()
-		}
+		}*/
 	}
 }
 
 func activarWorkerSSH(ip string, puerto string){
-	delim := "."
-	ip_separada := strings.Split(ip, delim)
-	maq := ip_separada[len(ip_separada)-1]
+	//fmt.Println("Entramos en activarSSH")
 	
-	//Sacamos los hosts de esta maquina:
-	usr, err := user.Current()
-	checkError(err)
+	ssh, err := utils.NewSshClient(
+		"juan",																				//ToDo: Poner como argumento
+		ip,
+		22,
+		"C:/Users/Juan/.ssh/id_rsa",															//ToDo: Poner como argumento
+		"")
+	if err != nil {
+		fmt.Printf("SSH init error %v", err)
+	} else {
+		comando := "/home/juan/Escritorio/SD/worker " + ip + " " + puerto+ "&"
+		//comando := "/home/a800616/UNI/Tercero/SD/p1-sd-master/master-worker/worker"
 
-	//Buscamos en el fichero de maquinas conocidas
-	hostKey, err := knownhosts.New(usr.HomeDir + "/.ssh/known_hosts")
-	checkError(err)
-
-	//Buscamos el fichero con la clave: aqui haremos que la clave se llame id_<nom_maq>
-	fich := usr.HomeDir + "/.ssh/" + maq
-	clave, err := ioutil.ReadFile(fich)
-	checkError(err)
-
-	//Ahora agregamos la clave a la conexion
-	signer, err2 := ssh.ParsePrivateKey(clave)
-	checkErrorPW(err2)
-
-	//Añadimos la config de conexion con ssh
-	conf := &ssh.ClientConfig{
-		User: usr.Name,
-		Auth: []ssh.AuthMethod{
-			ssh.PublicKeys(signer),
-		},
-		HostKeyCallback: hostKey,
-		Timeout:         0,
+		//output, err := ssh.RunCommand(comando)
+		ssh.RunCommand(comando)
+		fmt.Println("comando lanzado")
 	}
-
-	//Generamos el cliente, la conexión ssh se hace por tcp y puerto 22 por defecto
-	conexion_ssh := ip + ":22" 
-	conn, err := ssh.Dial("tcp", conexion_ssh, conf)
-	
-	//Comenzamos una sesion y ejecutamos el comando que active el worker
-	sesion, err := conn.NewSession()
-	checkError(err)
-	comando := "/home/a800616/UNI/Tercero/SD/p1-sd-master/master-worker/worker " 
-			   + id + " " + puerto
-	sesion.Run(comando)
-	
-	//CUIDAO CON ESTO, porque si cierro conexion entonces igual el worker se va a tomar por culo
-	sesion.Close()
-	conn.Close()
 }
 
 func main() {
 	CONN_TYPE := "tcp"
-		
-	//IMPORTANTE!!!! : Habra que enviar clave publica a dichas maquinas y asegurarnos de que siempre usemos las mismas
 	
-	//Y tambien tendremos que hacer que se ejecute el worker escuchando a una ip y puerto concreto,
-	//habra que pasarlo por parametro al ejecutar con ssh
-	
-	//Mi idea es leer de un fichero las ip con sus puertos y luego en un for ir llamando a cada
-	//gorutine con su ip y ademas lanzar por ssh la ejecucion de los workers
+
 	
 	//De momento hardcodeamos el vector de rutas a workers:
-	workers := [4]ruta_worker{
-		ruta_worker{
-			ip: "155.210.154.195",
-			puerto: "30000",
+	workers := []com.Ruta_worker{
+		com.Ruta_worker{
+			Ip: "192.168.1.228",
+			Puerto: "40000",
 		},
-		ruta_worker{
-			ip: "155.210.154.196",
-			puerto: "30001",
+/*		com.Ruta_worker{
+			Ip: "155.210.154.196",
+			Puerto: "40000",
 		},
-		ruta_worker{
-			ip: "155.210.154.197",
-			puerto: "30002",
+		com.Ruta_worker{
+			Ip: "155.210.154.193",
+			Puerto: "40000",
 		},
-		ruta_worker{
-			ip: "155.210.154.198",
-			puerto: "30003",
+		com.Ruta_worker{
+			Ip: "155.210.154.198",
+			Puerto: "40000",
 		},
+*/
 	}
 
 	var CONN_PORT, CONN_HOST string
@@ -166,19 +137,15 @@ func main() {
 
 	chJobs := make(chan com.Job, 10)
 
-	//Preparamos la gorutines, que esperaran a recibir algo por el canal
-	/*go poolGoRutines(chJobs, IP) 
-	go poolGoRutines(chJobs, IP)
-	go poolGoRutines(chJobs, IP)
-	go poolGoRutines(chJobs, IP)*/
-	
 	//Activamos todos workers con sus correspodientes ips y puertos a escuchar, tambien
 	//arrancamos la gorutines que se conectaran con los workers
 	for i := range workers{
-		go poolGoRutines(chJobs, workers[i].ip, workers[i].puerto)
-		go activarWorkerSSH(workers[i].ip, workers[i].puerto)
+		//Activamos los workers
+		activarWorkerSSH(workers[i].Ip, workers[i].Puerto)
+		go poolGoRutines(chJobs, workers[i].Ip, workers[i].Puerto)
 	}
-	
+
+	fmt.Println("Salgo")
 	listener, err := net.Listen(CONN_TYPE, CONN_HOST + ":" + CONN_PORT)
 	checkError(err)
 
@@ -187,10 +154,13 @@ func main() {
 		conn, err := listener.Accept()
 		//defer conn.Close()
 		checkError(err)
-		
-		go handleClient(conn, chJobs)
 
+		go handleClient(conn, chJobs)
 	}
+
+	//Comando para matar workers
+	//kill -9 $(ps aux -u juan | grep "/home/juan/Escritorio/SD/worker 192.168.1.228 40000" | head -1 | tr -s ' ' | cut -d " " -f 2)
+
 
 }
 
@@ -198,25 +168,26 @@ func handleClient(conn net.Conn, chJobs chan com.Job) {
 	//Recibimos los datos del cliente
     decoder := gob.NewDecoder(conn)
 
-    reciboPeticiones := true
+  //  reciboPeticiones := true
 	
-    for reciboPeticiones {
+   // for reciboPeticiones {
 	    var request com.Request
 		//Transformamos lo bytes que nos llegan al struct 
 	    err := decoder.Decode(&request)
-	    if err != nil {
-			reciboPeticiones = false
-			conn.Close()
-			fmt.Println("Okey ")
-			break
-		}
+	//    if err != nil {
+	//		reciboPeticiones = false
+	//		conn.Close()
+	//		break
+	//	}
 	    //checkError(err)
-	    fmt.Println("handleClient recibo: " , request)
+	    fmt.Println(err,"handleClient recibo: " , request)
 		
 		//Creamos el trabajo (Conexion y datos a procesar del cliente)
 	    job := com.Job{conn, request}
+		fmt.Println("He creado el job")
 		//Enviamos al canal de las gorutines para que procesen los datos
 	    chJobs <- job
-    }
+		fmt.Println("He enviado el job")
+    //}
 }
 
