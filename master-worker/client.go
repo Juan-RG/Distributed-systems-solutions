@@ -98,7 +98,7 @@ func main(){
     numIt := 10
     requestTmp := 6
     interval := com.TPInterval{1000, 70000}
-    interval = com.TPInterval{1, 7}
+    //interval = com.TPInterval{1, 7}
     tts := 3000 // time to sleep between consecutive requests
 
     for i := 0; i < numIt; i++ {
