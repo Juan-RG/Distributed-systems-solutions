@@ -15,8 +15,10 @@ import (
 	"com"
     "encoding/gob"
     "os"
+
 	"utils"
 )
+
 
 
 
@@ -54,7 +56,6 @@ func conectarAWorker(intervalo com.TPInterval, ip string) []int {
 func poolGoRutines(chJobs chan com.Job, ip string, puerto string){
 	ruta := ip + ":" + puerto
 	for {
-
 		job := <- chJobs
 		fmt.Println("He leido del canal: ", job)
 		
@@ -74,6 +75,7 @@ func poolGoRutines(chJobs chan com.Job, ip string, puerto string){
 		}*/
 	}
 }
+
 
 func activarWorkerSSH(ip string, puerto string){
 	//fmt.Println("Entramos en activarSSH")
@@ -99,8 +101,6 @@ func activarWorkerSSH(ip string, puerto string){
 func main() {
 	CONN_TYPE := "tcp"
 	
-
-	
 	//De momento hardcodeamos el vector de rutas a workers:
 	workers := []com.Ruta_worker{
 		com.Ruta_worker{
@@ -108,6 +108,12 @@ func main() {
 			Puerto: "40000",
 		},
 /*		com.Ruta_worker{
+=======
+			Ip: "155.210.154.195",
+			Puerto: "40000",
+		},
+		com.Ruta_worker{
+>>>>>>> 10d105a8a52edd245515bd540e06096e6e27fa53
 			Ip: "155.210.154.196",
 			Puerto: "40000",
 		},
@@ -136,6 +142,7 @@ func main() {
 	}
 
 	chJobs := make(chan com.Job, 10)
+
 
 	//Activamos todos workers con sus correspodientes ips y puertos a escuchar, tambien
 	//arrancamos la gorutines que se conectaran con los workers
@@ -189,5 +196,6 @@ func handleClient(conn net.Conn, chJobs chan com.Job) {
 	    chJobs <- job
 		fmt.Println("He enviado el job")
     //}
+
 }
 
