@@ -150,6 +150,12 @@ func main() {
 		//Activamos los workers
 		activarWorkerSSH(workers[i].Ip, workers[i].Puerto)
 		go poolGoRutines(chJobs, workers[i].Ip, workers[i].Puerto)
+		go poolGoRutines(chJobs, workers[i].Ip, workers[i].Puerto)
+		go poolGoRutines(chJobs, workers[i].Ip, workers[i].Puerto)
+		go poolGoRutines(chJobs, workers[i].Ip, workers[i].Puerto)
+		go poolGoRutines(chJobs, workers[i].Ip, workers[i].Puerto)
+		go poolGoRutines(chJobs, workers[i].Ip, workers[i].Puerto)
+
 	}
 
 	fmt.Println("Salgo")
