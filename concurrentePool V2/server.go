@@ -49,18 +49,14 @@ func FindPrimes(interval com.TPInterval) (primes []int) {
 
 func poolGoRutines(chJobs chan com.Job){
 	for {
-
 		job := <- chJobs
 		encoder := gob.NewEncoder(job.Conn)
-		fmt.Println("PoolGoRutines recibo: " , job)
 		primos := FindPrimes(job.Request.Interval)
 		reply := com.Reply{Id: job.Request.Id, Primes: primos}
-		fmt.Println("PoolGoRutines envio: " , reply)
 		err := encoder.Encode(reply)
 		if err != nil {
 			job.Conn.Close()
 		}
-		//chReply <- reply
 	}
 
 }
@@ -87,7 +83,8 @@ func main() {
 	go poolGoRutines(chJobs)
 	go poolGoRutines(chJobs)
 	go poolGoRutines(chJobs)
-
+	go poolGoRutines(chJobs)
+	go poolGoRutines(chJobs)
 
 	listener, err := net.Listen(CONN_TYPE, CONN_HOST + ":" + CONN_PORT)
 	checkError(err)
@@ -111,21 +108,12 @@ func handleClient(conn net.Conn, chJobs chan com.Job) {
 
 	
     decoder := gob.NewDecoder(conn)
-
-    reciboPeticiones := true
-    for reciboPeticiones {
-	    var request com.Request
-	    err := decoder.Decode(&request)
-	    if err != nil {
-			reciboPeticiones = false
-			conn.Close()
-			 fmt.Println("Okey ")
-			break
-		}
-	    //checkError(err)
-	    fmt.Println("handleClient recibo: " , request)
-	    job := com.Job{conn, request}
-	    chJobs <- job
-    }
+    var request com.Request
+    err := decoder.Decode(&request)
+	checkError(err)
+    
+    job := com.Job{conn, request}
+    chJobs <- job
+    
 }
 

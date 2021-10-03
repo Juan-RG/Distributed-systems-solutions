@@ -16,6 +16,8 @@ import (
     "encoding/gob"
     "os"
 	"utils"
+	"io/ioutil"
+	"encoding/json"
 )
 
 func checkError(err error) {
@@ -55,7 +57,7 @@ func poolGoRutines(chJobs chan com.Job, ip string, puerto string){
 		primos := conectarAWorker(job.Request.Interval, ip + ":" + puerto)
 		reply := com.Reply{Id: job.Request.Id, Primes: primos}
 		encoder := gob.NewEncoder(job.Conn)
-		err := encoder.Encode(reply)
+		encoder.Encode(reply)
 		defer job.Conn.Close()
 	}
 
@@ -78,35 +80,56 @@ func activarWorkerSSH(ip string, puerto string){
 	}
 }
 
+/*
+type Rutas struct {
+	rutas []Ruta_worker `json:"Server"`
+}
+
+type Ruta_worker struct {
+    Ip string `json:"Ip"`
+    Puerto string `json:"Puerto"`
+}
+*/
+//-------------------------
+type Rutas struct {
+    Workers []Ruta_worker `json:"server"`
+}
+
+
+type Ruta_worker struct {
+    Ip   string `json:"ip"`
+    Puerto   string `json:"puerto"`
+}
+
+
+
+
+
+//----------------------
+
 func main() {
 	CONN_TYPE := "tcp"
 	
-	//De momento hardcodeamos el vector de rutas a workers:
-	workers := []com.Ruta_worker{
-		com.Ruta_worker{
-			Ip: "192.168.1.228",
-			Puerto: "40000",
-		},
-/*		com.Ruta_worker{
-=======
-			Ip: "155.210.154.195",
-			Puerto: "40000",
-		},
-		com.Ruta_worker{
->>>>>>> 10d105a8a52edd245515bd540e06096e6e27fa53
-			Ip: "155.210.154.196",
-			Puerto: "40000",
-		},
-		com.Ruta_worker{
-			Ip: "155.210.154.193",
-			Puerto: "40000",
-		},
-		com.Ruta_worker{
-			Ip: "155.210.154.198",
-			Puerto: "40000",
-		},
-*/
-	}
+ 	
+ // Open our jsonFile
+    jsonFile, err := os.Open("workers.json")
+    // if we os.Open returns an error then handle it
+    if err != nil {
+        fmt.Println(err)
+    }
+    // defer the closing of our jsonFile so that we can parse it later on
+    defer jsonFile.Close()
+
+    // read our opened xmlFile as a byte array.
+    byteValue, _ := ioutil.ReadAll(jsonFile)
+
+    // we initialize our Users array
+    var rutas Rutas
+
+    // we unmarshal our byteArray which contains our
+    // jsonFile's content into 'users' which we defined above
+    json.Unmarshal(byteValue, &rutas)
+
 
 	var CONN_PORT, CONN_HOST string
 	if len(os.Args) > 1 && os.Args[1] != "" {
@@ -123,18 +146,18 @@ func main() {
 
 	chJobs := make(chan com.Job, 10)
 
-
 	//Activamos todos workers con sus correspodientes ips y puertos a escuchar, tambien
 	//arrancamos la gorutines que se conectaran con los workers
-	for i := range workers{
+	for i := range rutas.Workers{
+		fmt.Println(i, rutas.Workers[i])
 		//Activamos los workers
-		activarWorkerSSH(workers[i].Ip, workers[i].Puerto)
-		go poolGoRutines(chJobs, workers[i].Ip, workers[i].Puerto)
-		go poolGoRutines(chJobs, workers[i].Ip, workers[i].Puerto)
-		go poolGoRutines(chJobs, workers[i].Ip, workers[i].Puerto)
-		go poolGoRutines(chJobs, workers[i].Ip, workers[i].Puerto)
-		go poolGoRutines(chJobs, workers[i].Ip, workers[i].Puerto)
-		go poolGoRutines(chJobs, workers[i].Ip, workers[i].Puerto)
+		activarWorkerSSH(rutas.Workers[i].Ip, rutas.Workers[i].Puerto)
+		go poolGoRutines(chJobs, rutas.Workers[i].Ip, rutas.Workers[i].Puerto)
+		go poolGoRutines(chJobs, rutas.Workers[i].Ip, rutas.Workers[i].Puerto)
+		go poolGoRutines(chJobs, rutas.Workers[i].Ip, rutas.Workers[i].Puerto)
+		go poolGoRutines(chJobs, rutas.Workers[i].Ip, rutas.Workers[i].Puerto)
+		go poolGoRutines(chJobs, rutas.Workers[i].Ip, rutas.Workers[i].Puerto)
+		go poolGoRutines(chJobs, rutas.Workers[i].Ip, rutas.Workers[i].Puerto)
 
 	}
 
@@ -161,7 +184,7 @@ func handleClient(conn net.Conn, chJobs chan com.Job) {
 
     var request com.Request
 	//Transformamos lo bytes que nos llegan al struct 
-    err := decoder.Decode(&request)
+    decoder.Decode(&request)
 
 	//Creamos el trabajo (Conexion y datos a procesar del cliente)
     job := com.Job{conn, request}

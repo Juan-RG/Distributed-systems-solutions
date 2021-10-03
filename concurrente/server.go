@@ -58,8 +58,7 @@ func main() {
 	//Establezco todas las conexiones que llegan. El servidor ahora nunca acaba
 	for{
 		conn, err := listener.Accept()
-		//defer conn.Close()
-		fmt.Println("0 ", err)
+
 		checkError(err)
 		
 		go handleClient(conn)
@@ -73,25 +72,16 @@ func handleClient(conn net.Conn) {
 
 	encoder := gob.NewEncoder(conn)
     decoder := gob.NewDecoder(conn)
+    var request com.Request
+    err := decoder.Decode(&request)
+    checkError(err)
 
-    recivoPeticiones := true
-    for recivoPeticiones {
-	    var request com.Request
-	    err := decoder.Decode(&request)
-	    if err != nil {
-			recivoPeticiones = false
-		}
-	    checkError(err)
-
-	    listaPrimos := FindPrimes(request.Interval)
+	listaPrimos := FindPrimes(request.Interval)
 
 		//quitar el id hardcode												//Todo: Poner el id o incremental o aleatorio -> Mas facil a mi parecer aleatorio
-		reply := com.Reply{Id: request.Id, Primes: listaPrimos}
+	reply := com.Reply{Id: request.Id, Primes: listaPrimos}
 
-		err = encoder.Encode(reply)
-		if err != nil {
-			recivoPeticiones = false
-		}
-    }
+	err = encoder.Encode(reply)
+	checkError(err)
 }
 
