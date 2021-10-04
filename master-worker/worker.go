@@ -53,7 +53,7 @@ func main() {
 	if len(os.Args) > 2 && os.Args[2] != "" {
 		CONN_PORT = os.Args[2]
 	} else {
-		CONN_PORT = "30000"
+		CONN_PORT = "40000"
 	}
 
 	listener, err := net.Listen(CONN_TYPE, CONN_HOST + ":" + CONN_PORT)

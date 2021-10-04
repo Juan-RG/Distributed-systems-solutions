@@ -66,31 +66,23 @@ func poolGoRutines(chJobs chan com.Job, ip string, puerto string){
 
 func activarWorkerSSH(ip string, puerto string){	
 	ssh, err := utils.NewSshClient(
-		"juan",																				//ToDo: Poner como argumento
+		"a805001",																				//ToDo: Poner como argumento
 		ip,
 		22,
-		"C:/Users/Juan/.ssh/id_rsa",														//ToDo: Poner como argumento
+		"/home/a805001/.ssh/id_rsa",														//ToDo: Poner como argumento
 		"")
 	if err != nil {
 		fmt.Printf("SSH init error %v", err)
 	} else {
-		comando := "/home/juan/Escritorio/SD/worker " + ip + " " + puerto+ "&"				//ToDo: poner como argumento
+		comando := "/home/a805001/Desktop/SD/master-worker/worker " + ip + " " + puerto+ "&"				//ToDo: poner como argumento
 		//comando := "/home/a800616/UNI/Tercero/SD/p1-sd-master/master-worker/worker"
+		fmt.Println("Ejecuto comando")
 		ssh.RunCommand(comando)
+		fmt.Println("salgo")
 	}
 }
 
-/*
-type Rutas struct {
-	rutas []Ruta_worker `json:"Server"`
-}
 
-type Ruta_worker struct {
-    Ip string `json:"Ip"`
-    Puerto string `json:"Puerto"`
-}
-*/
-//-------------------------
 type Rutas struct {
     Workers []Ruta_worker `json:"server"`
 }
@@ -141,7 +133,7 @@ func main() {
 	if len(os.Args) > 2 && os.Args[2] != "" {
 		CONN_PORT = os.Args[2]
 	} else {
-		CONN_PORT = "30000"
+		CONN_PORT = "40000"
 	}
 
 	chJobs := make(chan com.Job, 10)
@@ -175,6 +167,7 @@ func main() {
 
 	//Comando para matar workers
 	//kill -9 $(ps aux -u juan | grep "/home/juan/Escritorio/SD/worker 192.168.1.228 40000" | head -1 | tr -s ' ' | cut -d " " -f 2)
+	//kill -9 $(ps -u a805001 | grep "worker" | head -1 | tr -s ' ' | cut -d " " -f 2)
 }
 
 func handleClient(conn net.Conn, chJobs chan com.Job) {
