@@ -15,6 +15,7 @@ import (
     "com"
     "os"
     "net"
+    "sync"
 )
 
 func checkError(err error) {
@@ -31,34 +32,31 @@ func checkError(err error) {
 // temporal. Para evitar condiciones de carrera, la estructura de datos compartida se almacena en una Goroutine
 // (handleRequests) y que controla los accesos a través de canales síncronos. En este caso, se añade una nueva
 // petición a la estructura de datos mediante el canal addChan
-func sendRequest(id int, interval com.TPInterval, endpoint string){
+func sendRequest(id int, interval com.TPInterval, endpoint string, wg *sync.WaitGroup){
 
-
+    //Cambio para realizar x conexiones
+    
+    
     tcpAddr, err := net.ResolveTCPAddr("tcp", endpoint)
     checkError(err)
-
     conn, err := net.DialTCP("tcp", nil, tcpAddr)
     checkError(err)
-
     encoder := gob.NewEncoder(conn)
     decoder := gob.NewDecoder(conn)
-    
+
     addChan := make(chan com.TimeRequest)
     delChan := make(chan com.TimeReply)
 
+    
     go handleRequests(addChan, delChan)
+    go receiveReply(decoder, delChan, wg)
 
     request := com.Request{id, interval}
     timeReq := com.TimeRequest{id, time.Now()}
-
     err = encoder.Encode(request)
+
     checkError(err)
     addChan <- timeReq
-
-    go receiveReply(decoder, delChan)
-
-   
-    
 }
 
 // handleRequests es una Goroutine que garantiza el acceso en exclusión mutua a la tabla de peticiones. La tabla de peticiones
@@ -87,27 +85,45 @@ func handleRequests(addChan chan com.TimeRequest, delChan chan com.TimeReply) {
 // temporal. Para evitar condiciones de carrera, la estructura de datos compartida se almacena en una Goroutine
 // (handleRequests) y que controla los accesos a través de canales síncronos. En este caso, se añade una nueva
 // petición a la estructura de datos mediante el canal addChan
-func receiveReply(decoder *gob.Decoder, delChan chan com.TimeReply){
-   // for {
-        var reply com.Reply
-        err := decoder.Decode(&reply)
-        checkError(err)
-        timeReply := com.TimeReply{reply.Id, time.Now()}
-        delChan <- timeReply 
-   // }
+func receiveReply(decoder *gob.Decoder, delChan chan com.TimeReply, wg *sync.WaitGroup){
+    var reply com.Reply
+    err := decoder.Decode(&reply)
+    checkError(err)
+    timeReply := com.TimeReply{reply.Id, time.Now()}
+    wg.Done()
+    delChan <- timeReply
+    
 }
 
 func main(){
-    endpoint := "127.0.0.1:30000"
-    numIt := 10
-    requestTmp := 6
+    wg := &sync.WaitGroup{}
+    endpoint := "127.0.0.1:40000"
+    numIt := 60
+    requestTmp := 1
     interval := com.TPInterval{1000, 70000}
     tts := 3000 // time to sleep between consecutive requests
 
     for i := 0; i < numIt; i++ {
         for t := 1; t <= requestTmp; t++{
-            sendRequest(i * requestTmp + t, interval, endpoint)
+            wg.Add(1)
+            sendRequest(i * requestTmp + t, interval, endpoint, wg)
+            wg.Add(1)
+            sendRequest(i * requestTmp + t, interval, endpoint, wg)
+            wg.Add(1)
+            sendRequest(i * requestTmp + t, interval, endpoint, wg)
+            wg.Add(1)
+            sendRequest(i * requestTmp + t, interval, endpoint, wg)
+            wg.Add(1)
+            sendRequest(i * requestTmp + t, interval, endpoint, wg)
+            wg.Add(1)
+            sendRequest(i * requestTmp + t, interval, endpoint, wg)
+            wg.Add(1)
+            sendRequest(i * requestTmp + t, interval, endpoint, wg)
+            wg.Add(1)
+            sendRequest(i * requestTmp + t, interval, endpoint, wg)
         }
         time.Sleep(time.Duration(tts) * time.Millisecond)
     }
+     //time.Sleep(time.Second * 50)
+     wg.Wait()
 }
