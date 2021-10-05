@@ -47,7 +47,7 @@ func FindPrimes(interval com.TPInterval) (primes []int) {
 	return primes
 }
 
-func poolGoRutines(chJobs chan com.Job){
+func poolGoRutines(chJobs chan com.Job, cadena string){
 	for {
 		job := <- chJobs
 		encoder := gob.NewEncoder(job.Conn)
@@ -57,6 +57,8 @@ func poolGoRutines(chJobs chan com.Job){
 		if err != nil {
 			job.Conn.Close()
 		}
+		
+
 	}
 
 }
@@ -74,17 +76,17 @@ func main() {
 	if len(os.Args) > 2 && os.Args[2] != "" {
 		CONN_PORT = os.Args[2]
 	} else {
-		CONN_PORT = "30000"
+		CONN_PORT = "40000"
 	}
 
-	chJobs := make(chan com.Job, 10)
+	chJobs := make(chan com.Job, 100)
 
-	go poolGoRutines(chJobs)
-	go poolGoRutines(chJobs)
-	go poolGoRutines(chJobs)
-	go poolGoRutines(chJobs)
-	go poolGoRutines(chJobs)
-	go poolGoRutines(chJobs)
+	go poolGoRutines(chJobs, "A")
+	go poolGoRutines(chJobs, "B")
+	go poolGoRutines(chJobs, "C")
+	go poolGoRutines(chJobs, "D")
+	go poolGoRutines(chJobs, "E")
+	go poolGoRutines(chJobs, "F")
 
 	listener, err := net.Listen(CONN_TYPE, CONN_HOST + ":" + CONN_PORT)
 	checkError(err)

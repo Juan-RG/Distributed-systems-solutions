@@ -98,8 +98,8 @@ func receiveReply(decoder *gob.Decoder, delChan chan com.TimeReply, wg *sync.Wai
 func main(){
     wg := &sync.WaitGroup{}
     endpoint := "127.0.0.1:40000"
-    numIt := 10
-    requestTmp := 6
+    numIt := 60
+    requestTmp := 1
     interval := com.TPInterval{1000, 70000}
     tts := 3000 // time to sleep between consecutive requests
 
@@ -107,7 +107,20 @@ func main(){
         for t := 1; t <= requestTmp; t++{
             wg.Add(1)
             sendRequest(i * requestTmp + t, interval, endpoint, wg)
-           
+            wg.Add(1)
+            sendRequest(i * requestTmp + t, interval, endpoint, wg)
+            wg.Add(1)
+            sendRequest(i * requestTmp + t, interval, endpoint, wg)
+            wg.Add(1)
+            sendRequest(i * requestTmp + t, interval, endpoint, wg)
+            wg.Add(1)
+            sendRequest(i * requestTmp + t, interval, endpoint, wg)
+            wg.Add(1)
+            sendRequest(i * requestTmp + t, interval, endpoint, wg)
+            wg.Add(1)
+            sendRequest(i * requestTmp + t, interval, endpoint, wg)
+            wg.Add(1)
+            sendRequest(i * requestTmp + t, interval, endpoint, wg)
         }
         time.Sleep(time.Duration(tts) * time.Millisecond)
     }
